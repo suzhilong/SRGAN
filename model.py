@@ -1,8 +1,9 @@
 import math
 import torch
 from torch import nn
+import torch.nn.functional as F
 
-
+#生成器
 class Generator(nn.Module):
     def __init__(self, scale_factor):
         upsample_block_num = int(math.log(scale_factor, 2))
@@ -83,7 +84,7 @@ class Discriminator(nn.Module):
         batch_size = x.size(0)
         return torch.sigmoid(self.net(x).view(batch_size))
 
-
+#定义残差块
 class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
