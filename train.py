@@ -15,12 +15,17 @@ from data_utils import TrainDatasetFromFolder, ValDatasetFromFolder, display_tra
 from loss import GeneratorLoss
 from model import Generator, Discriminator
 
+import torch.nn as nn
+#OSError: image file is truncated
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 # 给分析器增加description，crop_size（图片裁剪大小），放大因子，epoch（跑的次数）等参数
 parser = argparse.ArgumentParser(description='Train Super Resolution Models')
-parser.add_argument('--crop_size', default=88, type=int, help='training images crop size')
+parser.add_argument('--crop_size', default=44, type=int, help='training images crop size')
 parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
                     help='super resolution upscale factor')
-parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
+parser.add_argument('--num_epochs', default=10, type=int, help='train epoch number')
 
 # 对之前add的参数进行赋值，并返回响应namespace
 opt = parser.parse_args()
@@ -31,10 +36,10 @@ UPSCALE_FACTOR = opt.upscale_factor
 NUM_EPOCHS = opt.num_epochs
 
 # 从指定路径导入train_set，指定裁剪大小和放大因子
-train_set = TrainDatasetFromFolder('data/VOC2012/train', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
-val_set = ValDatasetFromFolder('data/VOC2012/val', upscale_factor=UPSCALE_FACTOR)
+train_set = TrainDatasetFromFolder('./data/train', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
+val_set = ValDatasetFromFolder('./data/val', upscale_factor=UPSCALE_FACTOR)
 # 使用loader，从训练集中，一次性处理一个batch的文件 （批量加载器）
-train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=64, shuffle=True)
+train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=16, shuffle=True)
 val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
 
 # 创建生成器实例 netG ，输出生成器参数的数量
@@ -53,6 +58,9 @@ if torch.cuda.is_available():
     netG.cuda()
     netD.cuda()
     generator_criterion.cuda()
+
+
+torch.cuda.empty_cache() #清空缓存
 
 # 构建优化器optimizer，传入模型所有参数，使用Adam参数优化算法，调用step（）可进行一次模型参数优化
 # Adam - 自适应学习率+适用非凸优化
@@ -119,7 +127,8 @@ for epoch in range(1, NUM_EPOCHS + 1):
             running_results['g_loss'] / running_results['batch_sizes'],
             running_results['d_score'] / running_results['batch_sizes'],
             running_results['g_score'] / running_results['batch_sizes']))
-    
+        torch.cuda.empty_cache() #清空缓存
+    torch.cuda.empty_cache() #清空缓存
     # 进入eval模式 （测试模式参数固定，只有前向传播）
     netG.eval()
     out_path = 'training_results/SRF_' + str(UPSCALE_FACTOR) + '/'
@@ -132,11 +141,13 @@ for epoch in range(1, NUM_EPOCHS + 1):
         batch_size = val_lr.size(0)
         # 已经测试过的数目
         valing_results['batch_sizes'] += batch_size
-        lr = Variable(val_lr, volatile=True)
-        hr = Variable(val_hr, volatile=True)
+        with torch.no_grad():
+            lr = Variable(val_lr) #, volatile=True)
+            hr = Variable(val_hr) #, volatile=True)
         if torch.cuda.is_available():
             lr = lr.cuda()
             hr = hr.cuda()
+            torch.cuda.empty_cache() #清空缓存
         # 直接输出结果，没有参数优化的过程
         sr = netG(lr)
         # 计算mse
