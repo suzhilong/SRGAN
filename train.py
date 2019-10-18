@@ -22,10 +22,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # 给分析器增加description，crop_size（图片裁剪大小），放大因子，epoch（跑的次数）等参数
 parser = argparse.ArgumentParser(description='Train Super Resolution Models')
-parser.add_argument('--crop_size', default=44, type=int, help='training images crop size')
+parser.add_argument('--crop_size', default=88, type=int, help='training images crop size')
 parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
                     help='super resolution upscale factor')
-parser.add_argument('--num_epochs', default=10, type=int, help='train epoch number')
+parser.add_argument('--num_epochs', default=200, type=int, help='train epoch number')
 
 # 对之前add的参数进行赋值，并返回响应namespace
 opt = parser.parse_args()
@@ -37,10 +37,10 @@ NUM_EPOCHS = opt.num_epochs
 
 # 从指定路径导入train_set，指定裁剪大小和放大因子
 train_set = TrainDatasetFromFolder('./data/train', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
-val_set = ValDatasetFromFolder('./data/val', upscale_factor=UPSCALE_FACTOR)
+val_set = ValDatasetFromFolder('./data/valLR', upscale_factor=UPSCALE_FACTOR)
 # 使用loader，从训练集中，一次性处理一个batch的文件 （批量加载器）
-train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=16, shuffle=True)
-val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
+train_loader = DataLoader(dataset=train_set, num_workers=8, batch_size=64, shuffle=True)
+val_loader = DataLoader(dataset=val_set, num_workers=8, batch_size=1, shuffle=False)
 
 # 创建生成器实例 netG ，输出生成器参数的数量
 netG = Generator(UPSCALE_FACTOR)
