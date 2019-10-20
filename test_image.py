@@ -22,7 +22,7 @@ MODEL_NAME = opt.model_name
 
 #model = Generator(UPSCALE_FACTOR).eval()
 model = Generator(UPSCALE_FACTOR)
-model = torch.nn.DataParallel(mdoel).eval()
+model = torch.nn.DataParallel(mel).eval()
 
 if TEST_MODE:
     model.cuda()
